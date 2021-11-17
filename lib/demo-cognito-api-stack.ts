@@ -13,32 +13,28 @@ export class DemoCognitoApiStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // Function that returns 201 with hello world
-    const helloWorldFunction = new Function(this, "HelloWorldFunction", {
-      runtime: Runtime.NODEJS_14_X,
-      code: AssetCode.fromAsset("../src"),
-      handler: "hello-world.handler",
+    // Function that returns 201 with "Hello world!"
+    const helloWorldFunction = new Function(this, "helloWorldFunction", {
+      code: new AssetCode("src"),
+      handler: "helloworld.handler",
+      runtime: Runtime.NODEJS_12_X,
     });
 
-    // Rest API that returns hello world
+    // Rest API backed by the helloWorldFunction
     const helloWorldLambdaRestApi = new LambdaRestApi(
       this,
-      "HelloWorldLambdaRestApi",
+      "helloWorldLambdaRestApi",
       {
+        restApiName: "Hello World API",
         handler: helloWorldFunction,
-        restApiName: "HelloWorldLambdaRestApi",
         proxy: false,
       }
     );
 
     // Hello Resource API for the REST API.
-    const helloResource = helloWorldLambdaRestApi.root.addResource("hello");
-
-    // GET method for the HELLO API resource. It uses Cognito for
-    // authorization and the auathorizer defined above.
-    helloResource.addMethod(
-      "GET",
-      new LambdaIntegration(helloWorldFunction, {})
-    );
+    const hello = helloWorldLambdaRestApi.root.addResource("HELLO");
+    const helloIntegration = new LambdaIntegration(helloWorldFunction);
+    hello.addMethod("GET", helloIntegration);
+    
   }
 }
