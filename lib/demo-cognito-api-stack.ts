@@ -30,11 +30,31 @@ export class DemoCognitoApiStack extends Stack {
         proxy: false,
       }
     );
+    // Cognito User Pool with Email Sign-in Type.
+    const userPool = new UserPool(this, "userPool", {
+      signInAliases: {
+        email: true,
+      },
+    });
+
+    // Authorizer for the Hello World API that uses the
+    // Cognito User pool to Authorize users.
+    const authorizer = new CfnAuthorizer(this, "cfnAuth", {
+      restApiId: helloWorldLambdaRestApi.restApiId,
+      name: "HelloWorldAPIAuthorizer",
+      type: "COGNITO_USER_POOLS",
+      identitySource: "method.request.header.Authorization",
+      providerArns: [userPool.userPoolArn],
+    });
 
     // Hello Resource API for the REST API.
     const hello = helloWorldLambdaRestApi.root.addResource("HELLO");
     const helloIntegration = new LambdaIntegration(helloWorldFunction);
-    hello.addMethod("GET", helloIntegration);
-    
+    hello.addMethod("GET", helloIntegration, {
+      authorizationType: AuthorizationType.COGNITO,
+      authorizer: {
+        authorizerId: authorizer.ref,
+      },
+    });
   }
 }
